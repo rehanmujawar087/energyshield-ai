@@ -4,23 +4,23 @@ FastAPI service implementing the Risk Intelligence Agent, Scenario Modeller, Pro
 
 ## Status
 
-Scaffold only — endpoints are not implemented yet. See the repo root `README.md` → "Status" for the honest current state, and `docs/API.md` (once published) for the planned endpoint contracts.
+Only `GET /api/health` exists right now — verified running locally, returns `{"status": "ok", ...}`. Module routers (risk, scenario, procurement, SPR, pipeline) are not implemented yet. See the repo root `README.md` → "Status" for the honest current state.
 
 ## Structure
 
 ```
 backend/
 ├── requirements.txt
-├── .cache/            # gitignored — cached LLM responses
+├── .cache/            # gitignored — cached LLM responses (not used yet)
 └── app/
-    ├── main.py        # FastAPI app entrypoint (TODO)
+    ├── main.py        # FastAPI app entrypoint — GET /api/health only, so far
     ├── llm.py         # Groq/Gemini LLM interface, cached, with deterministic fallback (TODO)
-    ├── agents/         # Risk Intelligence Agent — rehanmujawar087
-    ├── models/         # Pydantic schemas shared across routers
-    └── routers/        # FastAPI routers: risk, scenario, procurement, spr, pipeline
+    ├── agents/         # Risk Intelligence Agent — rehanmujawar087 (TODO)
+    ├── models/         # Pydantic schemas shared across routers (TODO)
+    └── routers/        # FastAPI routers: risk, scenario, procurement, spr, pipeline (TODO)
 ```
 
-## Setup (once `main.py` exists)
+## Setup
 
 ```bash
 cd backend
@@ -28,8 +28,8 @@ python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate    # macOS/Linux
 pip install -r requirements.txt
-cp ../.env.example ../.env    # fill in GROQ_API_KEY etc.
 uvicorn app.main:app --reload --port 8000
+# curl http://127.0.0.1:8000/api/health
 ```
 
 ## Ownership

@@ -92,23 +92,23 @@ flowchart LR
 
 ## 7. Status
 
-**Built:**
-- Repository scaffold, `.gitignore`, `.env.example`, `CLAUDE.md` with team rules and ownership.
-- `backend/` and `frontend/` folder structure with README stubs.
+**PLANNED** (all six modules described above — Risk Intelligence Agent, Digital Twin map, Scenario Modeller, Procurement Optimiser, SPR Optimiser, Pipeline runner — none of this module logic is implemented yet):
 
-**In progress (target: working end-to-end by Evaluation Round 2, ~2:00 PM IST):**
-- `docs/API.md` with Pydantic schemas and example JSON per endpoint.
-- Mock endpoints returning realistic placeholder data for all six modules, so all four members can build against a stable contract in parallel.
-- Seed data under `/data` (suppliers, corridors with waypoints, ports, refineries, SPR sites, `assumptions.json`) and `data/README.md`.
-
-**Not yet started:**
-- Real Risk Intelligence Agent logic (LLM event extraction, live scoring).
+- Real Risk Intelligence Agent (LLM event extraction, live disruption scoring, evidence trail).
+- Digital Twin map (corridor risk colouring, ports/refineries/SPR sites, simulated vessels).
 - Scenario Modeller, Procurement Optimiser, SPR Optimiser deterministic implementations.
-- Pipeline runner wiring the above together with stage timing.
-- React dashboard (map, risk panel, scenario/procurement/SPR panels).
-- Stretch goals (knowledge graph, RAG "ask the analyst", backtest, memo export) — only attempted after the core pipeline works end to end.
+- Pipeline runner chaining the modules together with stage timing.
+- API contract docs (`docs/API.md`), mock endpoints, and seed data under `/data`.
+- Full React dashboard built on the modules above.
 
-This section will be kept honest and updated as the build progresses — nothing above is a claim of a working feature unless it says "Built."
+**BUILT** (only what is actually in this repo right now):
+
+- `README.md` (this file), `.gitignore`, `.env.example`.
+- `CLAUDE.md` with hackathon rules, stack, commit convention, and the ownership table.
+- `backend/`: FastAPI app exposing `GET /api/health`, `requirements.txt` — verified running locally and returning `200 OK`.
+- `frontend/`: Vite + React app shell that renders the project name, `package.json` — verified `npm run dev` starts and serves the page.
+
+Nothing above is claimed as working unless it is listed under BUILT. This section is updated honestly as the build progresses — it is not a claim of what we intend to build, only what currently runs.
 
 ## 8. Team
 
@@ -121,8 +121,26 @@ This section will be kept honest and updated as the build progresses — nothing
 
 ## 9. Setup
 
-Setup instructions will be filled in as `backend/` and `frontend/` become runnable (target: before Evaluation Round 2). See `backend/README.md` and `frontend/README.md` for current stubs, and `docs/API.md` once published for the API contract.
+What runs today (verified locally):
+
+```bash
+# Backend — health check only
+cd backend
+python -m venv .venv
+.venv\Scripts\activate        # Windows; use `source .venv/bin/activate` on macOS/Linux
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+# curl http://127.0.0.1:8000/api/health -> {"status":"ok", ...}
+
+# Frontend — app shell only
+cd frontend
+npm install
+npm run dev
+# open http://localhost:5173 -> renders "EnergyShield AI"
+```
+
+Module endpoints, the dashboard UI, and the API contract (`docs/API.md`) will be added in later commits — see the Status section above for exactly what exists right now.
 
 ---
 
-*All disruption scenarios, vessel tracks, and seed figures in this project are for hackathon demonstration purposes. Where data is simulated or approximate, it is labelled as such in the UI and in `data/README.md`.*
+*Where this project uses simulated or approximate data (e.g. vessel tracks, seed figures), it will be clearly labelled as such in the UI and docs once that data is added.*

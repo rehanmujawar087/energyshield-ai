@@ -4,31 +4,33 @@ React + Vite dashboard: digital twin map, corridor risk panel, scenario modeller
 
 ## Status
 
-Scaffold only — no components implemented yet. See the repo root `README.md` → "Status" for the honest current state.
+Only a minimal app shell exists right now — `App.jsx` renders the project name. Verified `npm run dev` starts and serves the page at `http://localhost:5173`. No dashboard components (map, risk panel, scenario/procurement/SPR panels) yet. See the repo root `README.md` → "Status" for the honest current state.
 
 ## Structure
 
 ```
 frontend/
 ├── package.json
+├── vite.config.js
+├── index.html
 └── src/
-    ├── main.tsx        # entrypoint (TODO)
-    ├── App.tsx         # layout/router (TODO)
+    ├── main.jsx        # entrypoint
+    ├── App.jsx         # app shell — renders project name only, so far
     ├── components/     # map, risk panel, scenario/procurement/SPR panels (TODO)
     └── lib/            # API client for the backend (TODO)
 ```
 
 ## Tech
 
-React, Vite, Tailwind CSS, react-leaflet (map), Recharts (charts).
+React + Vite today. Tailwind CSS, react-leaflet (map), and Recharts (charts) are planned additions once the dashboard components are built — not installed yet.
 
-## Setup (once scaffolded with Vite)
+## Setup
 
 ```bash
 cd frontend
 npm install
-cp ../.env.example ../.env   # sets VITE_API_BASE_URL
 npm run dev
+# open http://localhost:5173
 ```
 
 ## Ownership
