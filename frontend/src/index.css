@@ -648,6 +648,20 @@ a {
   border: 1px solid var(--border);
 }
 
+/* Dark "ocean" background behind tiles/land fallback at all times, not
+   just while tiles are loading — avoids a flash of light grey. */
+.leaflet-container {
+  background: var(--bg-raised);
+}
+
+/* OSM's standard tiles are keyless but light-themed; invert + rotate hue
+   to approximate a dark control-room basemap without a provider-side
+   dark style (those need an API key). Applied to the tile layer's own
+   container via its `className` prop, not the whole shared tile pane. */
+.map-tile-pane-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}
+
 .map-emoji-icon-wrapper {
   background: transparent;
   border: none;
@@ -660,9 +674,12 @@ a {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(5, 8, 16, 0.85);
+  background: rgba(5, 8, 16, 0.92);
   border: 1px solid var(--border-strong);
   color: var(--text-dim);
+  /* Extra separation from the basemap/land-fallback background, which
+     can otherwise be a similar dark tone right under a marker. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .map-emoji-icon--port {

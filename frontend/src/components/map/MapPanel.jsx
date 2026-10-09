@@ -1,18 +1,40 @@
-import { useMemo, useState } from "react";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip } from "react-leaflet";
+import { useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, GeoJSON, Polyline, CircleMarker, Marker, Tooltip } from "react-leaflet";
 import { CORRIDOR_LABELS, riskColorVar } from "../../lib/format.js";
 import { SkeletonBlock } from "../layout/Skeleton.jsx";
 import { EmptyState } from "../layout/EmptyState.jsx";
 import { ErrorState } from "../layout/ErrorState.jsx";
+import { useToast } from "../layout/ToastProvider.jsx";
 import { portIcon, refineryIcon, sprIcon, vesselIcon } from "./icons.js";
 import { useVesselRoute } from "./useVesselRoute.js";
 import { MapLegend } from "./MapLegend.jsx";
 import { LayerToggle } from "./LayerToggle.jsx";
 import { ResetViewControl } from "./ResetViewControl.jsx";
 import { CorridorDetailDrawer } from "./CorridorDetailDrawer.jsx";
+// Simplified world land outline (Natural Earth 1:110m, public domain),
+// used as an offline fallback when basemap tiles fail to load — see
+// handleTileError below. ~135KB.
+import worldLand from "../../mock/world-simple.json";
 
 const ARABIAN_SEA_CENTER = [15, 65];
 const DEFAULT_ZOOM = 4;
+
+// Tile loads can fail individually and recover (one slow/dropped tile is
+// normal even on good connections) — only treat it as "basemap is down"
+// after several failures in a short window, so a single hiccup doesn't
+// trigger the offline fallback.
+const TILE_FAILURE_THRESHOLD = 4;
+
+const WORLD_LAND_STYLE = {
+  fillColor: "var(--bg-panel-2)",
+  color: "var(--border-strong)",
+  weight: 1,
+  fillOpacity: 0.95,
+  // Distinguishes these paths from corridor polylines (both render as
+  // plain SVG <path> — this className is how scripts/smoke.mjs confirms
+  // the land fallback specifically rendered, not just "some path").
+  className: "world-land-path",
+};
 
 const DEFAULT_VISIBLE = { corridors: true, ports: true, refineries: true, sprSites: true, vessels: true };
 // Stable empty-array reference. `mapLayers?.vessels ?? []` would otherwise
@@ -31,6 +53,26 @@ const NO_VESSELS = [];
  */
 export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCorridorId, onSelectCorridor, onRetry }) {
   const [visible, setVisible] = useState(DEFAULT_VISIBLE);
+  const [tilesOffline, setTilesOffline] = useState(false);
+  const tileErrorCount = useRef(0);
+  const { show: showToast } = useToast();
+
+  function handleTileError() {
+    // react-leaflet binds eventHandlers once at TileLayer mount and doesn't
+    // rebind them on re-render, so this closure always sees the *initial*
+    // tilesOffline value (false) no matter how many renders have happened
+    // since — reading that state here would never see a flip. The ref-
+    // based counter doesn't have that problem (refs are mutated in place,
+    // not captured by value), so use strict equality against it as a
+    // one-shot guard instead of state. setTilesOffline/showToast themselves
+    // are unaffected by the stale closure: the setter functions are stable
+    // across renders regardless of which render's closure calls them.
+    tileErrorCount.current += 1;
+    if (tileErrorCount.current === TILE_FAILURE_THRESHOLD) {
+      setTilesOffline(true);
+      showToast("Basemap tiles unavailable, showing offline outline", { tone: "warn" });
+    }
+  }
 
   const corridorWaypointsById = useMemo(() => {
     const map = {};
@@ -75,11 +117,23 @@ export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCor
               scrollWheelZoom
               style={{ height: "560px", width: "100%", borderRadius: "var(--radius)" }}
             >
+              {/* Keyless OSM standard tiles, no API key required. Darkened to
+                  match the control-room theme via a CSS filter on the tile
+                  pane (see .map-tile-pane-dark in index.css) rather than a
+                  provider-side dark style, since those need a key. */}
               <TileLayer
-                attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                className="map-tile-pane-dark"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                eventHandlers={{ tileerror: handleTileError }}
               />
               <ResetViewControl center={ARABIAN_SEA_CENTER} zoom={DEFAULT_ZOOM} />
+
+              {/* Offline fallback: a simplified world land outline, shown
+                  only once tile loads have actually failed repeatedly.
+                  Rendered before the corridors/markers below so they stay
+                  on top of it. */}
+              {tilesOffline && <GeoJSON data={worldLand} style={WORLD_LAND_STYLE} interactive={false} />}
 
               {visible.corridors &&
                 mapLayers.corridors.map((corridor) => (
