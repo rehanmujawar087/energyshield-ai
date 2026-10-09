@@ -1,15 +1,21 @@
 """EnergyShield AI — FastAPI entrypoint.
 
-Wires up the health check plus the mock routers for all six modules. Every
-endpoint here returns MOCK data (see docs/API.md) — real module logic is
-added in later commits without changing these response shapes unless the
-doc is updated first.
+Wires up the health check plus the module routers. See each router's own
+docstring for whether it's live, mock, or partial — see docs/API.md for
+the full contract and README.md -> Status for the honest current state.
 """
 
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import assumptions, map_layers, pipeline, procurement, risk, scenario, spr
+# Load the repo-root .env (GROQ_API_KEY etc.) before any router that reads
+# os.environ at import/call time (app/llm.py) runs.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+from app.routers import assumptions, map_layers, pipeline, procurement, risk, scenario, spr  # noqa: E402
 
 app = FastAPI(title="EnergyShield AI API", version="0.1.0")
 

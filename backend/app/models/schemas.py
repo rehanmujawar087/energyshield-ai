@@ -68,6 +68,11 @@ class InjectHeadlineRequest(BaseModel):
 class InjectHeadlineResponse(BaseModel):
     extracted_event: Evidence
     updated_corridor: CorridorRisk
+    # Honesty label for exactly how extracted_event was produced:
+    # "live" = real Groq call this request, "cached" = disk cache hit from
+    # an identical earlier headline, "fallback" = no API key / Groq call
+    # failed, used the deterministic keyword classifier instead.
+    extraction_source: Literal["live", "cached", "fallback"] = "fallback"
     meta: ApiMeta = Field(default_factory=ApiMeta)
 
 

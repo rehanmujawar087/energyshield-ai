@@ -1,17 +1,24 @@
-"""Risk Intelligence Agent — mock endpoints.
+"""Risk Intelligence Agent.
 
 GET /api/risk/corridors        — current per-corridor disruption scores.
-POST /api/risk/inject-headline — manual demo input; bumps the matching corridor.
+POST /api/risk/inject-headline — manual demo input; extracts a structured
+                                  event via app/llm.py and bumps the
+                                  matching corridor's score accordingly.
 
-MOCK ONLY. In-memory state, resets on backend restart. Real event extraction
-(LLM) and real scoring formula are not implemented here — see docs/API.md
-for the contract this will keep once they are.
+Event extraction is LIVE (real Groq call) when GROQ_API_KEY is set and
+reachable, CACHED when an identical headline was seen before, or
+FALLBACK (deterministic keywords, no LLM) otherwise — see
+InjectHeadlineResponse.extraction_source. The score itself is always a
+deterministic weighted formula over news/price/vessel inputs — the LLM
+only extracts event_type/severity/corridor, it never sets the score
+directly. In-memory state, resets on backend restart.
 """
 
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
+from app import llm
 from app.models.schemas import (
     CorridorRisk,
     Evidence,
@@ -31,19 +38,6 @@ _CORRIDOR_NAMES = {
     "suez": "Suez Canal",
     "malacca": "Strait of Malacca",
     "cape_route": "Cape of Good Hope route",
-}
-
-# Mock keyword -> corridor match for inject-headline when corridor isn't given.
-_KEYWORD_CORRIDOR = {
-    "hormuz": "hormuz",
-    "iran": "hormuz",
-    "red sea": "bab_el_mandeb",
-    "yemen": "bab_el_mandeb",
-    "houthi": "bab_el_mandeb",
-    "suez": "suez",
-    "egypt": "suez",
-    "malacca": "malacca",
-    "singapore": "malacca",
 }
 
 
@@ -66,7 +60,9 @@ def _weighted_score(b: RiskBreakdown) -> float:
 
 
 def _seed_state() -> dict[str, CorridorRisk]:
-    """Mock baseline risk per corridor. Numbers are placeholders, not a real model."""
+    """Starting risk per corridor. These baseline inputs are illustrative
+    (no live news/price/AIS feed behind them yet — see docs/API.md); the
+    scoring formula applied to them is real and deterministic."""
     seed = {
         "hormuz": _default_breakdown(55.0, 30.0, 35.0),
         "bab_el_mandeb": _default_breakdown(20.0, 25.0, 40.0),
@@ -92,14 +88,6 @@ def _seed_state() -> dict[str, CorridorRisk]:
 _state: dict[str, CorridorRisk] = _seed_state()
 
 
-def _pick_corridor(headline: str) -> str:
-    lowered = headline.lower()
-    for keyword, corridor in _KEYWORD_CORRIDOR.items():
-        if keyword in lowered:
-            return corridor
-    return "hormuz"  # mock default when nothing matches
-
-
 @router.get("/corridors", response_model=RiskCorridorsResponse)
 def get_corridors() -> RiskCorridorsResponse:
     return RiskCorridorsResponse(corridors=list(_state.values()))
@@ -107,21 +95,27 @@ def get_corridors() -> RiskCorridorsResponse:
 
 @router.post("/inject-headline", response_model=InjectHeadlineResponse)
 def inject_headline(body: InjectHeadlineRequest) -> InjectHeadlineResponse:
-    corridor_id = body.corridor or _pick_corridor(body.headline)
+    extraction, source = llm.extract_event(body.headline)
+    corridor_id = body.corridor or extraction["corridor"]
+    if corridor_id not in _state:
+        corridor_id = "hormuz"
     now = datetime.now(timezone.utc)
 
     event = Evidence(
         headline=body.headline,
         source_url=body.source_url,
         timestamp=now,
-        event_type="tanker_incident",  # mock — real agent will classify this via LLM
-        severity=4,  # mock fixed severity
+        event_type=extraction["event_type"],
+        severity=extraction["severity"],
         corridor=corridor_id,
     )
 
     current = _state[corridor_id]
+    # Severity (1-5) drives the news_severity bump — a 1-severity mention
+    # moves the needle a little, a 5 (e.g. "tanker seized") moves it a lot.
+    severity_delta = extraction["severity"] * 15.0
     bumped_breakdown = RiskBreakdown(
-        news_severity=min(current.breakdown.news_severity + 20.0, 100.0),
+        news_severity=min(current.breakdown.news_severity + severity_delta, 100.0),
         price_volatility=current.breakdown.price_volatility,
         vessel_anomaly=current.breakdown.vessel_anomaly,
         weights=_WEIGHTS,
@@ -136,4 +130,4 @@ def inject_headline(body: InjectHeadlineRequest) -> InjectHeadlineResponse:
     )
     _state[corridor_id] = updated
 
-    return InjectHeadlineResponse(extracted_event=event, updated_corridor=updated)
+    return InjectHeadlineResponse(extracted_event=event, updated_corridor=updated, extraction_source=source)
