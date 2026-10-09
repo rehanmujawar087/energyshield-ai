@@ -16,7 +16,7 @@
  */
 
 import { chromium } from "playwright";
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,15 +60,46 @@ async function check(name, fn) {
   }
 }
 
+/**
+ * `server.kill()` alone only kills the immediate child on Windows when the
+ * process was spawned with `shell: true` (it kills the cmd.exe wrapper,
+ * not the grandchild Vite/node process actually bound to the port, which
+ * then lingers and can keep this script's event loop alive). Fall back to
+ * `taskkill /T` (kill the whole process tree) there.
+ */
+function killServerTree(server) {
+  if (process.platform === "win32" && server.pid) {
+    try {
+      execSync(`taskkill /pid ${server.pid} /T /F`, { stdio: "ignore" });
+      return;
+    } catch {
+      // process may already be gone — fall through to the normal kill below
+    }
+  }
+  server.kill();
+}
+
 async function main() {
   await mkdir(SCREENSHOT_DIR, { recursive: true });
 
   console.log(`Starting Vite dev server on port ${PORT}...`);
-  const server = spawn("npx", ["vite", "--port", String(PORT), "--strictPort"], {
+  // --host 127.0.0.1 (not just the default, which can bind IPv6-only "::1"
+  // on some setups) so our IPv4 fetch/goto calls can actually reach it.
+  const server = spawn("npx", ["vite", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], {
     cwd: FRONTEND_DIR,
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
+
+  // Hard watchdog: this script must never hang indefinitely (observed once
+  // in a sandboxed environment where headless Chromium launched but never
+  // progressed). Kills the dev server and exits non-zero if we blow past a
+  // generous budget for the whole run.
+  const watchdog = setTimeout(() => {
+    console.error("\nSMOKE TEST WATCHDOG: exceeded 90s hard limit, aborting.");
+    killServerTree(server);
+    process.exit(1);
+  }, 90000);
   let serverLog = "";
   server.stdout.on("data", (d) => (serverLog += d.toString()));
   server.stderr.on("data", (d) => (serverLog += d.toString()));
@@ -79,9 +110,11 @@ async function main() {
   try {
     await waitForServer(BASE_URL);
 
-    const browser = await chromium.launch();
+    const browser = await chromium.launch({ args: ["--no-sandbox"] });
     const context = await browser.newContext();
     const page = await context.newPage();
+    page.setDefaultTimeout(8000);
+    page.setDefaultNavigationTimeout(15000);
 
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
@@ -90,7 +123,10 @@ async function main() {
 
     // --- Desktop viewport ---------------------------------------------
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(BASE_URL, { waitUntil: "networkidle" });
+    // "load" rather than "networkidle" — map tile requests can keep the
+    // network busy indefinitely in a sandboxed/offline environment, and
+    // we don't need every tile loaded to check the app itself works.
+    await page.goto(BASE_URL, { waitUntil: "load" });
 
     await check("header renders", async () => {
       await page.getByText("EnergyShield AI").first().waitFor({ timeout: 5000 });
@@ -134,7 +170,7 @@ async function main() {
     });
 
     await check("tabs switch between panels", async () => {
-      const tabs = page.locator("[data-testid='tab-button']");
+      const tabs = page.locator("[data-testid^='tab-button-']");
       const count = await tabs.count();
       if (count === 0) return "skip";
       for (let i = 0; i < count; i++) {
@@ -206,7 +242,8 @@ async function main() {
 
     await browser.close();
   } finally {
-    server.kill();
+    clearTimeout(watchdog);
+    killServerTree(server);
   }
 
   console.log("\n--- Console errors captured ---");
