@@ -1,6 +1,7 @@
 """Risk Intelligence Agent.
 
-GET /api/risk/corridors        — current per-corridor disruption scores.
+GET /api/risk/corridors        — current per-corridor disruption scores
+                                  and probabilities.
 POST /api/risk/inject-headline — manual demo input; extracts a structured
                                   event via app/llm.py and bumps the
                                   matching corridor's score accordingly.
@@ -8,22 +9,24 @@ POST /api/risk/inject-headline — manual demo input; extracts a structured
 Event extraction is LIVE (real Groq call) when GROQ_API_KEY is set and
 reachable, CACHED when an identical headline was seen before, or
 FALLBACK (deterministic keywords, no LLM) otherwise — see
-InjectHeadlineResponse.extraction_source. The score itself is always a
-deterministic weighted formula over news/price/vessel inputs — the LLM
-only extracts event_type/severity/corridor, it never sets the score
-directly. In-memory state, resets on backend restart.
+InjectHeadlineResponse.extraction_source. The score and probability are
+always a deterministic formula over news/price/vessel inputs (see
+app/probability.py) — the LLM only extracts event_type/severity/corridor,
+it never sets a score or probability directly. In-memory state, resets
+on backend restart.
 """
 
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
-from app import llm
+from app import llm, probability
 from app.models.schemas import (
     CorridorRisk,
     Evidence,
     InjectHeadlineRequest,
     InjectHeadlineResponse,
+    ProbabilityDriver,
     RiskBreakdown,
     RiskCorridorsResponse,
 )
@@ -41,15 +44,6 @@ _CORRIDOR_NAMES = {
 }
 
 
-def _default_breakdown(news: float, price: float, vessel: float) -> RiskBreakdown:
-    return RiskBreakdown(
-        news_severity=news,
-        price_volatility=price,
-        vessel_anomaly=vessel,
-        weights=_WEIGHTS,
-    )
-
-
 def _weighted_score(b: RiskBreakdown) -> float:
     return round(
         b.news_severity * _WEIGHTS["news_severity"]
@@ -59,29 +53,38 @@ def _weighted_score(b: RiskBreakdown) -> float:
     )
 
 
+def _build_corridor_risk(corridor_id: str, breakdown: RiskBreakdown, evidence: list[Evidence], now: datetime) -> CorridorRisk:
+    prob = probability.compute(breakdown.news_severity, breakdown.price_volatility, breakdown.vessel_anomaly, _WEIGHTS)
+    return CorridorRisk(
+        corridor=corridor_id,
+        name=_CORRIDOR_NAMES[corridor_id],
+        score=_weighted_score(breakdown),
+        breakdown=breakdown,
+        evidence=evidence,
+        updated_at=now,
+        probability_pct=prob["probability_pct"],
+        probability_p10=prob["probability_p10"],
+        probability_p50=prob["probability_p50"],
+        probability_p90=prob["probability_p90"],
+        drivers=[ProbabilityDriver(**d) for d in prob["drivers"]],
+        method_note=prob["method_note"],
+    )
+
+
 def _seed_state() -> dict[str, CorridorRisk]:
     """Starting risk per corridor. These baseline inputs are illustrative
     (no live news/price/AIS feed behind them yet — see docs/API.md); the
-    scoring formula applied to them is real and deterministic."""
-    seed = {
-        "hormuz": _default_breakdown(55.0, 30.0, 35.0),
-        "bab_el_mandeb": _default_breakdown(20.0, 25.0, 40.0),
-        "suez": _default_breakdown(10.0, 15.0, 10.0),
-        "malacca": _default_breakdown(8.0, 10.0, 15.0),
-        "cape_route": _default_breakdown(5.0, 10.0, 5.0),
+    scoring and probability formulas applied to them are real and
+    deterministic — see app/probability.py."""
+    seed_breakdowns = {
+        "hormuz": RiskBreakdown(news_severity=55.0, price_volatility=30.0, vessel_anomaly=35.0, weights=_WEIGHTS),
+        "bab_el_mandeb": RiskBreakdown(news_severity=20.0, price_volatility=25.0, vessel_anomaly=40.0, weights=_WEIGHTS),
+        "suez": RiskBreakdown(news_severity=10.0, price_volatility=15.0, vessel_anomaly=10.0, weights=_WEIGHTS),
+        "malacca": RiskBreakdown(news_severity=8.0, price_volatility=10.0, vessel_anomaly=15.0, weights=_WEIGHTS),
+        "cape_route": RiskBreakdown(news_severity=5.0, price_volatility=10.0, vessel_anomaly=5.0, weights=_WEIGHTS),
     }
     now = datetime.now(timezone.utc)
-    return {
-        cid: CorridorRisk(
-            corridor=cid,
-            name=_CORRIDOR_NAMES[cid],
-            score=_weighted_score(b),
-            breakdown=b,
-            evidence=[],
-            updated_at=now,
-        )
-        for cid, b in seed.items()
-    }
+    return {cid: _build_corridor_risk(cid, b, [], now) for cid, b in seed_breakdowns.items()}
 
 
 # In-memory state for the demo. Resets on restart — this is not persistence.
@@ -120,14 +123,7 @@ def inject_headline(body: InjectHeadlineRequest) -> InjectHeadlineResponse:
         vessel_anomaly=current.breakdown.vessel_anomaly,
         weights=_WEIGHTS,
     )
-    updated = CorridorRisk(
-        corridor=corridor_id,
-        name=current.name,
-        score=_weighted_score(bumped_breakdown),
-        breakdown=bumped_breakdown,
-        evidence=[*current.evidence, event],
-        updated_at=now,
-    )
+    updated = _build_corridor_risk(corridor_id, bumped_breakdown, [*current.evidence, event], now)
     _state[corridor_id] = updated
 
     return InjectHeadlineResponse(extracted_event=event, updated_corridor=updated, extraction_source=source)

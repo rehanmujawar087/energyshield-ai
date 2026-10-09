@@ -45,6 +45,11 @@ class RiskBreakdown(BaseModel):
     weights: dict[str, float]
 
 
+class ProbabilityDriver(BaseModel):
+    name: str
+    contribution_pct: float
+
+
 class CorridorRisk(BaseModel):
     corridor: CorridorId
     name: str
@@ -52,6 +57,16 @@ class CorridorRisk(BaseModel):
     breakdown: RiskBreakdown
     evidence: list[Evidence]
     updated_at: datetime
+    # Logistic transform of `score` + a Monte Carlo band from input
+    # jitter — see app/probability.py. UNCALIBRATED PRIOR, not a trained
+    # model: method_note carries that caveat into the API response itself
+    # so no client can show these numbers without the disclaimer text.
+    probability_pct: float = 0.0
+    probability_p10: float = 0.0
+    probability_p50: float = 0.0
+    probability_p90: float = 0.0
+    drivers: list[ProbabilityDriver] = Field(default_factory=list)
+    method_note: str = ""
 
 
 class RiskCorridorsResponse(BaseModel):
@@ -171,6 +186,13 @@ class ScenarioResult(BaseModel):
 class ProcurementRequest(BaseModel):
     scenario_id: str
     supply_gap_bpd: float
+    # Optional route-availability constraint: if set, suppliers routed
+    # through this corridor have their usable capacity reduced by
+    # closure_pct (0-100) before the optimiser runs. Omitted on a
+    # standalone call; the pipeline passes these through from the
+    # scenario request.
+    disrupted_corridor: Optional[CorridorId] = None
+    closure_pct: float = 0.0
 
 
 class ProcurementOption(BaseModel):
@@ -186,6 +208,10 @@ class ProcurementOption(BaseModel):
 class ProcurementResponse(BaseModel):
     scenario_id: str
     options: list[ProcurementOption]
+    # bpd of the requested supply_gap_bpd that no available supplier
+    # capacity could cover (0 if fully met) — surfaced so a judge can see
+    # when the optimiser hits a real capacity wall, not just succeed silently.
+    shortfall_bpd: float = 0.0
     memo: str
     meta: ApiMeta = Field(default_factory=ApiMeta)
 

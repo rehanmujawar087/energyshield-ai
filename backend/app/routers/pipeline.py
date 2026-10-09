@@ -70,7 +70,12 @@ def run_pipeline(body: PipelineRequest) -> PipelineResponse:
     procurement_result, timing = _timed(
         "procurement",
         run_procurement,
-        ProcurementRequest(scenario_id=scenario_result.scenario_id, supply_gap_bpd=scenario_result.supply_gap_bpd),
+        ProcurementRequest(
+            scenario_id=scenario_result.scenario_id,
+            supply_gap_bpd=scenario_result.supply_gap_bpd,
+            disrupted_corridor=body.scenario.corridor,
+            closure_pct=body.scenario.closure_pct,
+        ),
     )
     timings.append(timing)
     audit_log.append(
