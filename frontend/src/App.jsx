@@ -13,6 +13,7 @@ import { ProcurementPanel } from "./components/panels/ProcurementPanel.jsx";
 import { SprChartPanel } from "./components/panels/SprChartPanel.jsx";
 import { PipelineTimerCard } from "./components/panels/PipelineTimerCard.jsx";
 import { InjectHeadlineBar } from "./components/panels/InjectHeadlineBar.jsx";
+import { Footer } from "./components/layout/Footer.jsx";
 import { mockScenarioResult } from "./mock/scenario.js";
 import { mockRiskCorridors } from "./mock/riskCorridors.js";
 import { mockMapLayers } from "./mock/mapLayers.js";
@@ -53,8 +54,16 @@ function Dashboard() {
     spr: null,
     timings: null,
     totalMs: null,
+    auditLog: null,
     loading: false,
     error: null,
+  });
+  const [lastScenarioParams, setLastScenarioParams] = useState({
+    preset: "hormuz_partial_closure",
+    corridor: "hormuz",
+    closure_pct: 50,
+    duration_days: 30,
+    demand_elasticity: 0.05,
   });
   const [injecting, setInjecting] = useState(false);
   // Tracks whether the most recent scenario/inject-headline action reached
@@ -109,12 +118,14 @@ function Dashboard() {
         spr: mockSprPlan,
         timings: mockPipeline.timings,
         total_duration_ms: mockPipeline.total_duration_ms,
+        audit_log: mockPipeline.audit_log,
       };
       return { result: mockResult, live: false };
     }
   }
 
   async function handleRunScenario(scenarioParams) {
+    setLastScenarioParams(scenarioParams);
     setPipeline((p) => ({ ...p, loading: true, error: null }));
 
     const { result, live } = await runPipelineRequest({ headline: null, scenario: scenarioParams });
@@ -128,9 +139,17 @@ function Dashboard() {
       spr: result.spr,
       timings: result.timings,
       totalMs: result.total_duration_ms,
+      auditLog: result.audit_log ?? null,
       loading: false,
       error: null,
     });
+  }
+
+  /** The Pipeline tab's "Run full pipeline" button re-runs with the most
+   * recently used scenario parameters (or the default), so switching to
+   * that tab and running it doesn't require re-entering scenario inputs. */
+  function handleRunFullPipeline() {
+    handleRunScenario(lastScenarioParams);
   }
 
   async function handleInjectHeadline(headline) {
@@ -183,6 +202,7 @@ function Dashboard() {
       spr: result.spr,
       timings: result.timings,
       totalMs: result.total_duration_ms,
+      auditLog: result.audit_log ?? null,
       loading: false,
       error: null,
     });
@@ -238,10 +258,18 @@ function Dashboard() {
           </TabPanel>
 
           <TabPanel id="pipeline" activeId={activeTab}>
-            <PipelineTimerCard timings={pipeline.timings} totalMs={pipeline.totalMs} />
+            <PipelineTimerCard
+              timings={pipeline.timings}
+              totalMs={pipeline.totalMs}
+              auditLog={pipeline.auditLog}
+              loading={pipeline.loading}
+              onRun={handleRunFullPipeline}
+            />
           </TabPanel>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }
