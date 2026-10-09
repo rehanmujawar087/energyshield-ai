@@ -1,0 +1,10 @@
+[
+  { "id": "jnpt", "name": "Jawaharlal Nehru Port (Nhava Sheva)", "lat": 18.95, "lon": 72.95, "type": "container_and_liquid", "source_note": "Approximate public port coordinates" },
+  { "id": "kandla", "name": "Kandla / Deendayal Port", "lat": 23.02, "lon": 70.22, "type": "liquid_bulk", "source_note": "Approximate public port coordinates" },
+  { "id": "vadinar", "name": "Vadinar Port", "lat": 22.47, "lon": 69.70, "type": "crude_terminal", "source_note": "Approximate public port coordinates" },
+  { "id": "paradip", "name": "Paradip Port", "lat": 20.27, "lon": 86.68, "type": "crude_and_bulk", "source_note": "Approximate public port coordinates" },
+  { "id": "vizag", "name": "Visakhapatnam Port", "lat": 17.68, "lon": 83.28, "type": "crude_and_bulk", "source_note": "Approximate public port coordinates" },
+  { "id": "chennai", "name": "Chennai Port", "lat": 13.10, "lon": 80.29, "type": "crude_and_container", "source_note": "Approximate public port coordinates" },
+  { "id": "kochi", "name": "Kochi Port (Cochin)", "lat": 9.97, "lon": 76.26, "type": "crude_terminal", "source_note": "Approximate public port coordinates" },
+  { "id": "new_mangalore", "name": "New Mangalore Port", "lat": 12.93, "lon": 74.80, "type": "crude_terminal", "source_note": "Approximate public port coordinates" }
+]

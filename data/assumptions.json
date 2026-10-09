@@ -1,0 +1,44 @@
+[
+  {
+    "key": "india_crude_demand_bpd",
+    "value": 5300000,
+    "unit": "barrels_per_day",
+    "source_note": "Approximate India crude consumption, public industry estimates (see data/README.md)"
+  },
+  {
+    "key": "india_import_share_pct",
+    "value": 88,
+    "unit": "percent",
+    "source_note": "Commonly cited figure for India's crude import dependence (approximate, see data/README.md)"
+  },
+  {
+    "key": "hormuz_import_share_pct",
+    "value": 42.5,
+    "unit": "percent",
+    "source_note": "Midpoint of commonly cited 40-45% figure for Hormuz-transiting imports"
+  },
+  {
+    "key": "spr_total_days_cover",
+    "value": 9.5,
+    "unit": "days",
+    "source_note": "Commonly cited ISPRL strategic reserve figure (approximate, see data/README.md)"
+  },
+  {
+    "key": "spr_total_capacity_mmt",
+    "value": 5.33,
+    "unit": "million_metric_tonnes",
+    "source_note": "Sum of approximate ISPRL site capacities in data/spr_sites.json (1.33 + 1.5 + 2.5)"
+  },
+  {
+    "key": "gdp_impact_per_10usd_oil_pct",
+    "value": -0.3,
+    "unit": "percent_gdp",
+    "source_note": "Rough rule-of-thumb used in public commentary for a sustained $10/bbl oil price rise; not a calibrated economic model"
+  },
+  {
+    "key": "default_demand_elasticity",
+    "value": 0.05,
+    "unit": "fraction_per_10pct_price_move",
+    "source_note": "Placeholder elasticity assumption for the Scenario Modeller; not derived from a fitted demand curve"
+  }
+]

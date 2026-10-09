@@ -1,0 +1,5 @@
+[
+  { "id": "visakhapatnam", "name": "Visakhapatnam SPR", "lat": 17.70, "lon": 83.30, "capacity_mmt_approx": 1.33, "source_note": "Approximate public ISPRL capacity figure, rounded" },
+  { "id": "mangaluru", "name": "Mangaluru SPR", "lat": 12.87, "lon": 74.84, "capacity_mmt_approx": 1.5, "source_note": "Approximate public ISPRL capacity figure, rounded" },
+  { "id": "padur", "name": "Padur SPR", "lat": 13.35, "lon": 74.84, "capacity_mmt_approx": 2.5, "source_note": "Approximate public ISPRL capacity figure, rounded" }
+]

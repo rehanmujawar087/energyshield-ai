@@ -1,0 +1,9 @@
+[
+  { "id": "jamnagar", "name": "Jamnagar Refinery (Reliance)", "lat": 22.34, "lon": 69.90, "capacity_bpd_approx": 1240000, "source_note": "Approximate public capacity figure, rounded; world's largest single-location refining complex" },
+  { "id": "vadinar_refinery", "name": "Vadinar Refinery (Nayara Energy)", "lat": 22.47, "lon": 69.70, "capacity_bpd_approx": 400000, "source_note": "Approximate public capacity figure, rounded" },
+  { "id": "mumbai_refinery", "name": "Mumbai Refinery (BPCL)", "lat": 19.02, "lon": 72.85, "capacity_bpd_approx": 240000, "source_note": "Approximate public capacity figure, rounded" },
+  { "id": "vizag_refinery", "name": "Visakhapatnam Refinery (HPCL)", "lat": 17.70, "lon": 83.22, "capacity_bpd_approx": 170000, "source_note": "Approximate public capacity figure, rounded" },
+  { "id": "mangalore_refinery", "name": "Mangalore Refinery (MRPL)", "lat": 12.93, "lon": 74.80, "capacity_bpd_approx": 300000, "source_note": "Approximate public capacity figure, rounded" },
+  { "id": "paradip_refinery", "name": "Paradip Refinery (IOCL)", "lat": 20.26, "lon": 86.70, "capacity_bpd_approx": 300000, "source_note": "Approximate public capacity figure, rounded" },
+  { "id": "kochi_refinery", "name": "Kochi Refinery (BPCL)", "lat": 9.95, "lon": 76.30, "capacity_bpd_approx": 310000, "source_note": "Approximate public capacity figure, rounded" }
+]

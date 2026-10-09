@@ -1,0 +1,52 @@
+[
+  {
+    "id": "sup_saudi",
+    "name": "Saudi Aramco",
+    "route_corridor": "hormuz",
+    "capacity_bpd": 900000,
+    "price_usd_per_bbl": 82.0,
+    "transit_days": 9,
+    "simulated": true,
+    "source_note": "Illustrative/hypothetical supplier entry, not a real quoted contract — see data/README.md"
+  },
+  {
+    "id": "sup_iraq",
+    "name": "Iraq (Basra)",
+    "route_corridor": "hormuz",
+    "capacity_bpd": 500000,
+    "price_usd_per_bbl": 80.5,
+    "transit_days": 10,
+    "simulated": true,
+    "source_note": "Illustrative/hypothetical supplier entry, not a real quoted contract"
+  },
+  {
+    "id": "sup_uae",
+    "name": "UAE (Fujairah bypass)",
+    "route_corridor": "hormuz",
+    "capacity_bpd": 450000,
+    "price_usd_per_bbl": 84.5,
+    "transit_days": 6,
+    "simulated": true,
+    "source_note": "Illustrative/hypothetical supplier entry; Fujairah bypass avoids transiting the strait itself"
+  },
+  {
+    "id": "sup_us_gulf",
+    "name": "US Gulf Coast",
+    "route_corridor": "cape_route",
+    "capacity_bpd": 400000,
+    "price_usd_per_bbl": 89.0,
+    "transit_days": 21,
+    "simulated": true,
+    "source_note": "Illustrative/hypothetical supplier entry, not a real quoted contract"
+  },
+  {
+    "id": "sup_nigeria",
+    "name": "Nigeria (Bonny Light)",
+    "route_corridor": "cape_route",
+    "capacity_bpd": 350000,
+    "price_usd_per_bbl": 90.25,
+    "transit_days": 18,
+    "simulated": true,
+    "source_note": "Illustrative/hypothetical supplier entry, not a real quoted contract"
+  }
+]

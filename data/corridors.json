@@ -1,0 +1,68 @@
+[
+  {
+    "id": "hormuz",
+    "name": "Strait of Hormuz",
+    "simulated": true,
+    "note": "SIMULATED waypoints for map display only, not navigational data.",
+    "waypoints": [
+      { "lat": 26.75, "lon": 55.95 },
+      { "lat": 26.55, "lon": 56.25 },
+      { "lat": 26.30, "lon": 56.50 },
+      { "lat": 25.95, "lon": 56.90 }
+    ],
+    "india_share_note": "~40-45% of India's crude imports commonly cited as transiting this corridor (approximate, see data/README.md)"
+  },
+  {
+    "id": "bab_el_mandeb",
+    "name": "Bab-el-Mandeb / Red Sea",
+    "simulated": true,
+    "note": "SIMULATED waypoints for map display only.",
+    "waypoints": [
+      { "lat": 12.70, "lon": 43.35 },
+      { "lat": 12.55, "lon": 43.45 },
+      { "lat": 12.40, "lon": 43.55 },
+      { "lat": 20.00, "lon": 38.50 },
+      { "lat": 27.80, "lon": 34.00 }
+    ],
+    "india_share_note": "Alternative Europe/Mediterranean-bound route; relevant to Russian and some West African cargoes"
+  },
+  {
+    "id": "suez",
+    "name": "Suez Canal",
+    "simulated": true,
+    "note": "SIMULATED waypoints for map display only.",
+    "waypoints": [
+      { "lat": 31.26, "lon": 32.32 },
+      { "lat": 30.60, "lon": 32.35 },
+      { "lat": 29.93, "lon": 32.55 }
+    ],
+    "india_share_note": "Shortcut for Mediterranean/Black Sea (e.g. Russian Urals) cargoes bound for India"
+  },
+  {
+    "id": "malacca",
+    "name": "Strait of Malacca",
+    "simulated": true,
+    "note": "SIMULATED waypoints for map display only.",
+    "waypoints": [
+      { "lat": 5.50, "lon": 98.00 },
+      { "lat": 3.50, "lon": 100.50 },
+      { "lat": 1.50, "lon": 103.00 }
+    ],
+    "india_share_note": "Relevant to Far East crude/product flows and return/backhaul routes, lower direct India-import share"
+  },
+  {
+    "id": "cape_route",
+    "name": "Cape of Good Hope route",
+    "simulated": true,
+    "note": "SIMULATED waypoints for map display only.",
+    "waypoints": [
+      { "lat": 6.00, "lon": 3.50 },
+      { "lat": -20.00, "lon": 10.00 },
+      { "lat": -34.35, "lon": 18.47 },
+      { "lat": -30.00, "lon": 35.00 },
+      { "lat": -10.00, "lon": 55.00 },
+      { "lat": 10.00, "lon": 65.00 }
+    ],
+    "india_share_note": "Longer bypass route used if Hormuz/Red Sea/Suez are disrupted; higher transit time and freight cost"
+  }
+]
