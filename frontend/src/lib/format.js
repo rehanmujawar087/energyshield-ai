@@ -1,3 +1,11 @@
+export const CORRIDOR_WATCH_NOTES = {
+  hormuz: "Watch for tanker insurance premium spikes, naval incident reports, and Iran-US diplomatic statements.",
+  bab_el_mandeb: "Watch for Houthi attack claims, shipping rerouting announcements, and Suez traffic volume drops.",
+  suez: "Watch for canal transit delays, Egyptian government statements, and grounding/blockage reports.",
+  malacca: "Watch for piracy advisories and Singapore/Malaysia port congestion reports.",
+  cape_route: "Watch for storm/weather routing and freight rate changes on the bypass route.",
+};
+
 export const CORRIDOR_LABELS = {
   hormuz: "Strait of Hormuz",
   bab_el_mandeb: "Bab-el-Mandeb / Red Sea",

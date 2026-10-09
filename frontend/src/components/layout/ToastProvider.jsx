@@ -29,7 +29,7 @@ export function ToastProvider({ children }) {
       {children}
       <div className="toast-stack" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast toast--${t.tone}`} onClick={() => dismiss(t.id)}>
+          <div key={t.id} className={`toast toast--${t.tone}`} data-testid="toast" onClick={() => dismiss(t.id)}>
             {t.message}
           </div>
         ))}

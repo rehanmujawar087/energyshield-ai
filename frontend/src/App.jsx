@@ -1,37 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, SlidersHorizontal, Truck, Database, Workflow } from "lucide-react";
 import { api } from "./lib/api.js";
 import { useApiOrMock } from "./lib/useApiOrMock.js";
 import { useToast, ToastProvider } from "./components/layout/ToastProvider.jsx";
-import { TopBar } from "./components/layout/TopBar.jsx";
+import { Header } from "./components/layout/Header.jsx";
 import { KpiStrip } from "./components/layout/KpiStrip.jsx";
 import { MapPanel } from "./components/map/MapPanel.jsx";
+import { Tabs, TabPanel } from "./components/ui/Tabs.jsx";
 import { CorridorRiskList } from "./components/panels/CorridorRiskList.jsx";
 import { ScenarioPanel } from "./components/panels/ScenarioPanel.jsx";
 import { ProcurementPanel } from "./components/panels/ProcurementPanel.jsx";
 import { SprChartPanel } from "./components/panels/SprChartPanel.jsx";
 import { PipelineTimerCard } from "./components/panels/PipelineTimerCard.jsx";
 import { InjectHeadlineBar } from "./components/panels/InjectHeadlineBar.jsx";
-import { SCENARIO_PRESETS, mockScenarioResult } from "./mock/scenario.js";
+import { mockScenarioResult } from "./mock/scenario.js";
 import { mockRiskCorridors } from "./mock/riskCorridors.js";
 import { mockMapLayers } from "./mock/mapLayers.js";
+import { mockAssumptions } from "./mock/assumptions.js";
 import { mockProcurement } from "./mock/procurement.js";
 import { mockSprPlan } from "./mock/sprPlan.js";
 import { mockPipeline } from "./mock/pipeline.js";
+
+const TAB_ITEMS = [
+  { id: "risk", label: "Risk", icon: AlertTriangle },
+  { id: "scenario", label: "Scenario", icon: SlidersHorizontal },
+  { id: "procurement", label: "Procurement", icon: Truck },
+  { id: "reserves", label: "Reserves", icon: Database },
+  { id: "pipeline", label: "Pipeline", icon: Workflow },
+];
 
 /**
  * Dashboard shell. Every panel loads via useApiOrMock: it tries the real
  * backend first and falls back to the local mock/ data if that backend
  * isn't reachable. Either source is currently mock-sourced (see
- * docs/API.md) — that's what the "Demo data" pill communicates.
+ * docs/API.md) — that's what the header's DATA SOURCE pill communicates.
  */
 function Dashboard() {
   const { show: showToast } = useToast();
 
   const riskQuery = useApiOrMock(() => api.getRiskCorridors(), mockRiskCorridors, { deps: [] });
   const mapQuery = useApiOrMock(() => api.getMapLayers(), mockMapLayers, { deps: [] });
+  const assumptionsQuery = useApiOrMock(() => api.getAssumptions(), mockAssumptions, { deps: [] });
 
+  const [activeTab, setActiveTab] = useState("risk");
   const [corridors, setCorridors] = useState(null);
   const [selectedCorridorId, setSelectedCorridorId] = useState(null);
+  const [deltaByCorridor, setDeltaByCorridor] = useState({});
 
   const [pipeline, setPipeline] = useState({
     scenario: null,
@@ -43,16 +57,34 @@ function Dashboard() {
     error: null,
   });
   const [injecting, setInjecting] = useState(false);
-  const [isLive, setIsLive] = useState(false);
+  // Tracks whether the most recent scenario/inject-headline action reached
+  // the real backend. null = no pipeline action run yet (not counted below).
+  const [pipelineLive, setPipelineLive] = useState(null);
 
   // Sync the first successful corridor load into local state so inject-headline
   // can update individual corridors afterwards without re-fetching everything.
   useEffect(() => {
-    if (riskQuery.data) {
-      setCorridors(riskQuery.data.corridors);
-      setIsLive(riskQuery.isLive);
-    }
-  }, [riskQuery.data, riskQuery.isLive]);
+    if (riskQuery.data) setCorridors(riskQuery.data.corridors);
+  }, [riskQuery.data]);
+
+  const assumptionsByKey = useMemo(() => {
+    const list = assumptionsQuery.data?.assumptions ?? [];
+    return Object.fromEntries(list.map((a) => [a.key, a]));
+  }, [assumptionsQuery.data]);
+
+  // The header's DATA SOURCE pill reflects reality: LIVE only if every
+  // panel that has loaded so far reached the real backend, MOCK if none
+  // did, PARTIAL if mixed.
+  const dataSourceStatus = useMemo(() => {
+    const flags = [];
+    if (riskQuery.data) flags.push(riskQuery.isLive);
+    if (mapQuery.data) flags.push(mapQuery.isLive);
+    if (pipelineLive !== null) flags.push(pipelineLive);
+    if (flags.length === 0) return "MOCK";
+    if (flags.every(Boolean)) return "LIVE";
+    if (flags.every((f) => !f)) return "MOCK";
+    return "PARTIAL";
+  }, [riskQuery.data, riskQuery.isLive, mapQuery.data, mapQuery.isLive, pipelineLive]);
 
   const highestRiskCorridor = useMemo(() => {
     if (!corridors || corridors.length === 0) return null;
@@ -82,21 +114,12 @@ function Dashboard() {
     }
   }
 
-  async function handleRunScenario(presetId) {
-    const preset = SCENARIO_PRESETS.find((p) => p.id === presetId) ?? SCENARIO_PRESETS[0];
+  async function handleRunScenario(scenarioParams) {
     setPipeline((p) => ({ ...p, loading: true, error: null }));
 
-    const { result, live } = await runPipelineRequest({
-      headline: null,
-      scenario: {
-        preset: preset.id,
-        corridor: preset.corridor,
-        closure_pct: preset.closure_pct,
-        duration_days: preset.duration_days,
-      },
-    });
+    const { result, live } = await runPipelineRequest({ headline: null, scenario: scenarioParams });
 
-    setIsLive(live);
+    setPipelineLive(live);
     if (!live) showToast("Demo mode — backend not reachable, showing mock scenario results", { tone: "warn" });
 
     setPipeline({
@@ -113,23 +136,45 @@ function Dashboard() {
   async function handleInjectHeadline(headline) {
     setInjecting(true);
     const defaultScenario = { preset: "hormuz_partial_closure", corridor: "hormuz", closure_pct: 50, duration_days: 30 };
+    const previousScores = Object.fromEntries((corridors ?? []).map((c) => [c.corridor, c.score]));
+
     const { result, live } = await runPipelineRequest({ headline, scenario: defaultScenario });
 
-    setIsLive(live);
+    setPipelineLive(live);
 
+    let changedCorridor = null;
     if (live && result.risk?.updated_corridor) {
       const updated = result.risk.updated_corridor;
+      changedCorridor = updated.corridor;
       setCorridors((prev) => (prev ? prev.map((c) => (c.corridor === updated.corridor ? updated : c)) : prev));
       showToast(`Risk updated: ${updated.name} now ${updated.score.toFixed(0)}/100`, { tone: "info" });
     } else if (!live) {
       showToast("Demo mode — backend not reachable, using mock data", { tone: "warn" });
       // Keep the demo interactive even offline: bump the likely corridor a bit.
-      const guess = headline.toLowerCase().includes("red sea") || headline.toLowerCase().includes("yemen")
-        ? "bab_el_mandeb"
-        : "hormuz";
+      const guess =
+        headline.toLowerCase().includes("red sea") || headline.toLowerCase().includes("yemen")
+          ? "bab_el_mandeb"
+          : "hormuz";
+      changedCorridor = guess;
       setCorridors((prev) =>
         prev ? prev.map((c) => (c.corridor === guess ? { ...c, score: Math.min(c.score + 15, 100) } : c)) : prev
       );
+    }
+
+    if (changedCorridor && previousScores[changedCorridor] != null) {
+      // Delta is computed after the state update settles, using the mock
+      // bump amount or the live new score minus the old one.
+      setTimeout(() => {
+        setCorridors((prev) => {
+          const now = prev?.find((c) => c.corridor === changedCorridor)?.score;
+          if (now != null) {
+            const delta = Math.round(now - previousScores[changedCorridor]);
+            setDeltaByCorridor((d) => ({ ...d, [changedCorridor]: delta }));
+            setTimeout(() => setDeltaByCorridor((d) => ({ ...d, [changedCorridor]: undefined })), 4000);
+          }
+          return prev;
+        });
+      }, 0);
     }
 
     setPipeline({
@@ -146,9 +191,7 @@ function Dashboard() {
 
   return (
     <div className="app">
-      <TopBar isLive={isLive} />
-
-      <InjectHeadlineBar onSubmit={handleInjectHeadline} submitting={injecting} />
+      <Header dataSourceStatus={dataSourceStatus} />
 
       <KpiStrip highestRiskCorridor={highestRiskCorridor} loading={riskQuery.loading} />
 
@@ -163,21 +206,40 @@ function Dashboard() {
         />
 
         <div className="right-column">
-          <CorridorRiskList
-            corridors={corridors}
-            loading={riskQuery.loading}
-            error={riskQuery.error}
-            onSelect={setSelectedCorridorId}
-          />
-          <ScenarioPanel
-            result={pipeline.scenario}
-            loading={pipeline.loading}
-            error={pipeline.error}
-            onRun={handleRunScenario}
-          />
-          <ProcurementPanel result={pipeline.procurement} loading={pipeline.loading} error={pipeline.error} />
-          <SprChartPanel plan={pipeline.spr} loading={pipeline.loading} error={pipeline.error} />
-          <PipelineTimerCard timings={pipeline.timings} totalMs={pipeline.totalMs} />
+          <Tabs items={TAB_ITEMS} activeId={activeTab} onChange={setActiveTab} />
+
+          <TabPanel id="risk" activeId={activeTab}>
+            <InjectHeadlineBar onSubmit={handleInjectHeadline} submitting={injecting} />
+            <CorridorRiskList
+              corridors={corridors}
+              loading={riskQuery.loading}
+              error={riskQuery.error}
+              onSelect={setSelectedCorridorId}
+              deltaByCorridor={deltaByCorridor}
+            />
+          </TabPanel>
+
+          <TabPanel id="scenario" activeId={activeTab}>
+            <ScenarioPanel
+              result={pipeline.scenario}
+              loading={pipeline.loading}
+              error={pipeline.error}
+              onRun={handleRunScenario}
+              assumptionsByKey={assumptionsByKey}
+            />
+          </TabPanel>
+
+          <TabPanel id="procurement" activeId={activeTab}>
+            <ProcurementPanel result={pipeline.procurement} loading={pipeline.loading} error={pipeline.error} />
+          </TabPanel>
+
+          <TabPanel id="reserves" activeId={activeTab}>
+            <SprChartPanel plan={pipeline.spr} loading={pipeline.loading} error={pipeline.error} />
+          </TabPanel>
+
+          <TabPanel id="pipeline" activeId={activeTab}>
+            <PipelineTimerCard timings={pipeline.timings} totalMs={pipeline.totalMs} />
+          </TabPanel>
         </div>
       </div>
     </div>
