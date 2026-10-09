@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, SlidersHorizontal, Truck, Database, Workflow } from "lucide-react";
 import { api } from "./lib/api.js";
 import { useApiOrMock } from "./lib/useApiOrMock.js";
 import { useToast, ToastProvider } from "./components/layout/ToastProvider.jsx";
 import { Header } from "./components/layout/Header.jsx";
 import { KpiStrip } from "./components/layout/KpiStrip.jsx";
-import { MapPanel } from "./components/map/MapPanel.jsx";
+import { SkeletonBlock } from "./components/layout/Skeleton.jsx";
+
+// Code-split the map: leaflet + react-leaflet are the single biggest
+// contributor to bundle size, and the map isn't needed to paint the rest
+// of the dashboard first.
+const MapPanel = lazy(() => import("./components/map/MapPanel.jsx").then((m) => ({ default: m.MapPanel })));
 import { Tabs, TabPanel } from "./components/ui/Tabs.jsx";
 import { CorridorRiskList } from "./components/panels/CorridorRiskList.jsx";
 import { ScenarioPanel } from "./components/panels/ScenarioPanel.jsx";
@@ -215,15 +220,18 @@ function Dashboard() {
 
       <KpiStrip highestRiskCorridor={highestRiskCorridor} loading={riskQuery.loading} />
 
-      <div className="main-grid">
-        <MapPanel
-          mapLayers={mapQuery.data}
-          riskCorridors={corridors}
-          loading={mapQuery.loading}
-          error={mapQuery.error}
-          selectedCorridorId={selectedCorridorId}
-          onSelectCorridor={setSelectedCorridorId}
-        />
+      <main className="main-grid" aria-label="Risk map and analysis panels">
+        <Suspense fallback={<div className="panel"><SkeletonBlock height="560px" /></div>}>
+          <MapPanel
+            mapLayers={mapQuery.data}
+            riskCorridors={corridors}
+            loading={mapQuery.loading}
+            error={mapQuery.error}
+            selectedCorridorId={selectedCorridorId}
+            onSelectCorridor={setSelectedCorridorId}
+            onRetry={mapQuery.refetch}
+          />
+        </Suspense>
 
         <div className="right-column">
           <Tabs items={TAB_ITEMS} activeId={activeTab} onChange={setActiveTab} />
@@ -236,6 +244,7 @@ function Dashboard() {
               error={riskQuery.error}
               onSelect={setSelectedCorridorId}
               deltaByCorridor={deltaByCorridor}
+              onRetry={riskQuery.refetch}
             />
           </TabPanel>
 
@@ -267,7 +276,7 @@ function Dashboard() {
             />
           </TabPanel>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

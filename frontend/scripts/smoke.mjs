@@ -106,6 +106,7 @@ async function main() {
 
   const consoleErrors = [];
   const pageErrors = [];
+  const expectedNetworkNoise = [];
 
   try {
     await waitForServer(BASE_URL);
@@ -116,8 +117,34 @@ async function main() {
     page.setDefaultTimeout(8000);
     page.setDefaultNavigationTimeout(15000);
 
+    // Block external network (Google Fonts, CARTO map tiles). In a
+    // sandboxed/offline environment these connections don't fail fast,
+    // they hang until an OS-level TCP timeout — which in turn makes
+    // page.screenshot() hang too, since it waits on document.fonts.ready.
+    // Aborting them immediately is also just good practice for a smoke
+    // test: it shouldn't depend on third-party network availability.
+    await page.route(/^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|[a-z0-9-]+\.basemaps\.cartocdn\.com)\//, (route) =>
+      route.abort()
+    );
+
     page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
+      if (msg.type() !== "error") return;
+      const text = msg.text();
+      // The live-or-mock design (useApiOrMock) deliberately tries the real
+      // backend and catches failures to fall back to mock data, and this
+      // script deliberately blocks fonts/tiles too (see page.route above).
+      // Chromium logs a console error for every failed resource load
+      // regardless of whether the app catches it — a specific one naming
+      // our own /api/ endpoint, and often also a bare generic one with no
+      // URL in the text at all. Both are expected noise from that design,
+      // not a bug; anything else still fails this check.
+      const isBareResourceFailure = text === "Failed to load resource: net::ERR_FAILED";
+      const isOwnApiFailure = /\/api\//.test(text) && /(Failed to load resource|CORS policy)/.test(text);
+      if (isBareResourceFailure || isOwnApiFailure) {
+        expectedNetworkNoise.push(text);
+        return;
+      }
+      consoleErrors.push(text);
     });
     page.on("pageerror", (err) => pageErrors.push(err.message));
 
@@ -145,9 +172,14 @@ async function main() {
     });
 
     await check("map renders", async () => {
-      const count = await page.locator(".leaflet-container").count();
-      if (count === 0) return "skip";
-      await page.locator(".leaflet-container").first().waitFor();
+      // The map is lazy-loaded (code-split) and its data comes from
+      // useApiOrMock's ~450ms simulated-latency fallback, so give it a
+      // real wait instead of checking instantly.
+      try {
+        await page.locator(".leaflet-container").first().waitFor({ timeout: 6000 });
+      } catch {
+        return "skip";
+      }
     });
 
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "hero.png"), fullPage: false });
@@ -245,6 +277,10 @@ async function main() {
     clearTimeout(watchdog);
     killServerTree(server);
   }
+
+  console.log("\n--- Expected fallback network noise (not counted as failures) ---");
+  if (expectedNetworkNoise.length === 0) console.log("(none — likely reached the live backend, or none was running)");
+  else [...new Set(expectedNetworkNoise)].forEach((e) => console.log("  " + e));
 
   console.log("\n--- Console errors captured ---");
   if (consoleErrors.length === 0) console.log("(none)");

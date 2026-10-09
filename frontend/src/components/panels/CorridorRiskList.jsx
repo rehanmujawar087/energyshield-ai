@@ -15,9 +15,10 @@ const STATUS_LABEL = { green: "Low", amber: "Elevated", red: "High" };
  * @param {{
  *   corridors: any[] | null, loading: boolean, error: string | null,
  *   onSelect?: (id: string) => void, deltaByCorridor?: Record<string, number>,
+ *   onRetry?: () => void,
  * }} props
  */
-export function CorridorRiskList({ corridors, loading, error, onSelect, deltaByCorridor = {} }) {
+export function CorridorRiskList({ corridors, loading, error, onSelect, deltaByCorridor = {}, onRetry }) {
   const ranked = corridors ? [...corridors].sort((a, b) => b.score - a.score) : null;
 
   return (
@@ -28,7 +29,7 @@ export function CorridorRiskList({ corridors, loading, error, onSelect, deltaByC
       </div>
 
       {loading && <SkeletonLines count={5} />}
-      {!loading && error && <ErrorState message={error} onRetry={undefined} />}
+      {!loading && error && <ErrorState message={error} onRetry={onRetry} />}
       {!loading && !error && (!ranked || ranked.length === 0) && <EmptyState icon="📉" title="No risk data" />}
 
       {!loading && !error && ranked && ranked.length > 0 && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Tries a live backend call first; if the backend isn't reachable (not
@@ -9,12 +9,18 @@ import { useEffect, useState } from "react";
  * endpoints return meta.source === "mock" too) — isLive just tells callers
  * whether the *network call* succeeded, for the "DEMO DATA" pill wording.
  *
+ * Returns a `refetch()` function so panels can wire a working Retry
+ * button even though this hook never surfaces a terminal `error` today
+ * (it always falls back to mock rather than failing — see docs/API.md).
+ *
  * @param {() => Promise<any>} apiFn
  * @param {any} mockData
  * @param {{ deps?: any[], delayMs?: number }} [options]
  */
 export function useApiOrMock(apiFn, mockData, { deps = [], delayMs = 450 } = {}) {
   const [state, setState] = useState({ data: null, loading: true, error: null, isLive: false });
+  const [generation, setGeneration] = useState(0);
+  const refetch = useCallback(() => setGeneration((g) => g + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +42,7 @@ export function useApiOrMock(apiFn, mockData, { deps = [], delayMs = 450 } = {})
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, generation]);
 
-  return state;
+  return { ...state, refetch };
 }

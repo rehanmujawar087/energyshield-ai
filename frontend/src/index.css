@@ -16,7 +16,7 @@
   /* --- Text -------------------------------------------------------------- */
   --text: #eaf0fb;
   --text-dim: #93a1b8;
-  --text-faint: #5b6680;
+  --text-faint: #7c88a3; /* kept >= 4.5:1 against panel/raised surfaces for small text */
 
   /* --- Accents (restrained — information / caution / critical / safe) --- */
   --accent-cyan: #22d3ee;
@@ -716,9 +716,11 @@ a {
 }
 
 .layer-toggle {
+  /* bottom-left, not top-left — Leaflet's own zoom control sits top-left
+     by default and the two were overlapping (caught in docs/images). */
   position: absolute;
   z-index: var(--z-dropdown);
-  top: 12px;
+  bottom: 12px;
   left: 12px;
   display: flex;
   flex-direction: column;
@@ -935,15 +937,17 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: var(--space-2);
+  overflow-x: auto;
 }
 
 .tabs__button {
   flex: 1;
+  min-width: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 5px;
+  padding: 8px 6px;
   border: none;
   background: transparent;
   color: var(--text-dim);
@@ -1400,7 +1404,9 @@ a {
 
 .main-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  /* 440px so the 5-tab Risk/Scenario/Procurement/Reserves/Pipeline strip
+     fits without clipping or forcing a horizontal scroll on first paint. */
+  grid-template-columns: minmax(0, 1fr) 440px;
   gap: var(--space-2);
   align-items: start;
 }

@@ -1,13 +1,16 @@
+import { memo } from "react";
+
 const WIDTH = 64;
 const HEIGHT = 20;
 
 /**
  * Tiny inline trend line. There is no real score history yet (see
  * docs/API.md), so this draws an illustrative ramp toward the current
- * score — clearly not a claim of historical data.
+ * score — clearly not a claim of historical data. Memoised: it re-renders
+ * once per corridor on every list render otherwise.
  * @param {{ currentScore: number, color: string }} props
  */
-export function Sparkline({ currentScore, color }) {
+export const Sparkline = memo(function Sparkline({ currentScore, color }) {
   const points = [0.55, 0.7, 0.6, 0.8, 0.9, 1].map((f) => Math.max(2, currentScore * f));
   const max = Math.max(...points, 1);
   const step = WIDTH / (points.length - 1);
@@ -28,4 +31,4 @@ export function Sparkline({ currentScore, color }) {
       <polyline points={coords} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
-}
+});

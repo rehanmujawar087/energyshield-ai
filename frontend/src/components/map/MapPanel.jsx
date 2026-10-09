@@ -15,15 +15,21 @@ const ARABIAN_SEA_CENTER = [15, 65];
 const DEFAULT_ZOOM = 4;
 
 const DEFAULT_VISIBLE = { corridors: true, ports: true, refineries: true, sprSites: true, vessels: true };
+// Stable empty-array reference. `mapLayers?.vessels ?? []` would otherwise
+// create a brand new array every render while mapLayers is still loading,
+// which useVesselRoute's effect sees as "changed" every time — an
+// infinite render loop (caught by scripts/smoke.mjs's console-error check).
+const NO_VESSELS = [];
 
 /**
  * @param {{
  *   mapLayers: any, riskCorridors: any[],
  *   loading: boolean, error: string | null,
  *   selectedCorridorId: string | null, onSelectCorridor: (id: string | null) => void,
+ *   onRetry?: () => void,
  * }} props
  */
-export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCorridorId, onSelectCorridor }) {
+export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCorridorId, onSelectCorridor, onRetry }) {
   const [visible, setVisible] = useState(DEFAULT_VISIBLE);
 
   const corridorWaypointsById = useMemo(() => {
@@ -34,7 +40,7 @@ export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCor
     return map;
   }, [mapLayers]);
 
-  const vessels = useVesselRoute(mapLayers?.vessels ?? [], corridorWaypointsById);
+  const vessels = useVesselRoute(mapLayers?.vessels ?? NO_VESSELS, corridorWaypointsById);
 
   const selectedCorridor = useMemo(
     () => riskCorridors?.find((c) => c.corridor === selectedCorridorId) ?? null,
@@ -53,7 +59,7 @@ export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCor
       </div>
 
       {loading && <SkeletonBlock height="560px" />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={onRetry} />}
       {!loading && !error && !mapLayers && (
         <EmptyState icon="🗺️" title="No map data" message="Map layers did not load." />
       )}
