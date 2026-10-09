@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { X, ExternalLink, Eye } from "lucide-react";
+import { X, ExternalLink, Eye, Info } from "lucide-react";
 import { CORRIDOR_LABELS, CORRIDOR_WATCH_NOTES, riskColorVar } from "../../lib/format.js";
 import { RiskGauge } from "../ui/RiskGauge.jsx";
 import { useFocusTrap } from "../../hooks/useFocusTrap.js";
@@ -47,6 +47,29 @@ export function CorridorDetailDrawer({ corridor, onClose }) {
           <BreakdownBar label="Price volatility" value={breakdown.price_volatility} weight={breakdown.weights.price_volatility} />
           <BreakdownBar label="Vessel anomaly" value={breakdown.vessel_anomaly} weight={breakdown.weights.vessel_anomaly} />
         </div>
+
+        {corridor.probability_p50 != null && (
+          <div className="drawer__probability">
+            <h4 className="drawer__subheading">
+              Disruption probability <span className="badge-mock">uncalibrated prior</span>
+            </h4>
+            <p className="drawer__probability-band font-mono">
+              p10 <strong>{corridor.probability_p10}</strong> · p50 <strong>{corridor.probability_p50}</strong> · p90{" "}
+              <strong>{corridor.probability_p90}</strong>
+            </p>
+            {corridor.drivers?.length > 0 && (
+              <p className="drawer__probability-drivers text-faint">
+                Top driver: {corridor.drivers[0].name.replace("_", " ")} ({corridor.drivers[0].contribution_pct}% of score)
+              </p>
+            )}
+            {corridor.method_note && (
+              <p className="drawer__probability-note">
+                <Info size={12} aria-hidden="true" style={{ display: "inline", verticalAlign: "-2px" }} />{" "}
+                {corridor.method_note}
+              </p>
+            )}
+          </div>
+        )}
 
         <h4 className="drawer__subheading">Evidence</h4>
         {corridor.evidence.length === 0 ? (

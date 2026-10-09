@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trophy, Scale, ChevronDown } from "lucide-react";
+import { Trophy, Scale, ChevronDown, AlertTriangle } from "lucide-react";
 import { CORRIDOR_LABELS, formatBpd, formatUsd } from "../../lib/format.js";
 import { SkeletonLines } from "../layout/Skeleton.jsx";
 import { EmptyState } from "../layout/EmptyState.jsx";
@@ -43,6 +43,12 @@ export function ProcurementPanel({ result, loading, error }) {
 
       {!loading && !error && result && (
         <>
+          {result.shortfall_bpd > 0 && (
+            <p className="procurement-shortfall">
+              <AlertTriangle size={13} aria-hidden="true" /> {result.shortfall_bpd.toLocaleString()} bpd of the gap is{" "}
+              <strong>unmet</strong> — no available supplier capacity could cover it.
+            </p>
+          )}
           <ol className="procurement-list">
             {result.options.map((o) => (
               <li

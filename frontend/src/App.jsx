@@ -171,7 +171,12 @@ function Dashboard() {
       const updated = result.risk.updated_corridor;
       changedCorridor = updated.corridor;
       setCorridors((prev) => (prev ? prev.map((c) => (c.corridor === updated.corridor ? updated : c)) : prev));
-      showToast(`Risk updated: ${updated.name} now ${updated.score.toFixed(0)}/100`, { tone: "info" });
+      const extractionLabel = { live: "live Groq extraction", cached: "cached extraction", fallback: "keyword fallback (no LLM)" }[
+        result.risk.extraction_source
+      ] || "extraction";
+      showToast(`Risk updated via ${extractionLabel}: ${updated.name} now ${updated.score.toFixed(0)}/100`, {
+        tone: "info",
+      });
     } else if (!live) {
       showToast("Demo mode — backend not reachable, using mock data", { tone: "warn" });
       // Keep the demo interactive even offline: bump the likely corridor a bit.
