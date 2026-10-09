@@ -286,3 +286,141 @@ a {
     padding: var(--space-1);
   }
 }
+
+/* --- Top bar --------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-raised) 100%);
+  border: 1px solid var(--border);
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__logo {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px rgba(245, 166, 35, 0.5));
+}
+
+.topbar__title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.topbar__tagline {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.topbar__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.topbar__clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 78px;
+}
+
+/* --- KPI strip --------------------------------------------------------- */
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .kpi-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.kpi-card__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.kpi-card__value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.kpi-card__note {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* --- Toasts -------------------------------------------------------------- */
+
+.toast-stack {
+  position: fixed;
+  bottom: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  max-width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  animation: toast-in 180ms ease;
+}
+.toast--info {
+  border-color: rgba(34, 211, 238, 0.4);
+}
+.toast--warn {
+  border-color: rgba(245, 166, 35, 0.4);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
