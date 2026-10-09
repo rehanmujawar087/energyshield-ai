@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip } from "react-leaflet";
 import { CORRIDOR_LABELS, riskColorVar } from "../../lib/format.js";
 import { SkeletonBlock } from "../layout/Skeleton.jsx";
@@ -15,10 +15,10 @@ const ARABIAN_SEA_CENTER = [15, 65];
  * @param {{
  *   mapLayers: any, riskCorridors: any[],
  *   loading: boolean, error: string | null,
+ *   selectedCorridorId: string | null, onSelectCorridor: (id: string | null) => void,
  * }} props
  */
-export function MapPanel({ mapLayers, riskCorridors, loading, error }) {
-  const [selectedCorridorId, setSelectedCorridorId] = useState(null);
+export function MapPanel({ mapLayers, riskCorridors, loading, error, selectedCorridorId, onSelectCorridor }) {
   const vessels = useVesselDrift(mapLayers?.vessels ?? []);
 
   const selectedCorridor = useMemo(
@@ -58,7 +58,7 @@ export function MapPanel({ mapLayers, riskCorridors, loading, error }) {
                   key={corridor.id}
                   positions={corridor.waypoints.map((w) => [w.lat, w.lon])}
                   pathOptions={{ color: riskColorVar(corridor.risk_score), weight: 5, opacity: 0.85 }}
-                  eventHandlers={{ click: () => setSelectedCorridorId(corridor.id) }}
+                  eventHandlers={{ click: () => onSelectCorridor(corridor.id) }}
                 >
                   <Tooltip sticky>
                     {CORRIDOR_LABELS[corridor.id] || corridor.name} — risk {corridor.risk_score.toFixed(0)}/100
@@ -107,7 +107,7 @@ export function MapPanel({ mapLayers, riskCorridors, loading, error }) {
         </>
       )}
 
-      <CorridorDetailDrawer corridor={selectedCorridor} onClose={() => setSelectedCorridorId(null)} />
+      <CorridorDetailDrawer corridor={selectedCorridor} onClose={() => onSelectCorridor(null)} />
     </section>
   );
 }
